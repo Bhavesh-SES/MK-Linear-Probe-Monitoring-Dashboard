@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>CWC Probe Dashboard — INX left / CHE right (dynamic URLs)</title>
+  <title>MK Linear Channel Probe Dashboard</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root {
@@ -172,7 +172,7 @@
 
 <body>
   <div class="topbar">
-    <h1>CWC Probe Dashboard</h1>
+    <h1>MK Linear Channel Probe Dashboard</h1>
 
     <div class="spacer"></div>
 
@@ -185,7 +185,7 @@
   <div class="layout">
     <!-- LEFT: INX side -->
     <div class="panel" id="leftPanel">
-      <h2>INX Panel — select channel to show INX & CHE probes</h2>
+      <h2>INX Probe Panel - Select Channel to show INX & CHE Feed </h2>
       <div class="toolbar">
         <input id="leftSearch" type="text" placeholder="Search channels (type & press Enter to select)" />
         <select id="leftDropdown">
@@ -199,7 +199,7 @@
 
     <!-- RIGHT: CHE side -->
     <div class="panel" id="rightPanel">
-      <h2>CHE Panel — select channel to show INX & CHE probes</h2>
+      <h2>CHE Probe Panel - Select Channel to show INX & CHE Feed </h2>
       <div class="toolbar">
         <input id="rightSearch" type="text" placeholder="Search channels (type & press Enter to select)" />
         <select id="rightDropdown">
@@ -352,13 +352,17 @@
     // ---------- render functions ----------
     function clearContainer(container) { container.innerHTML = ''; }
 
+    // REPLACE the existing renderLeftForSelection(...) function with this:
     function renderLeftForSelection(selected) {
       clearContainer(leftContent);
       if (!selected) return; // show nothing until user selects
+
       // produce both variants (INX_..., CHE_...)
       const { inx, che } = produceBothVariants(selected);
-      const inxUrl = buildInxUrl(inx);
-      const cheUrl = buildCheUrl(che);
+
+      // BOTH frames on the LEFT must use the INX master IP
+      const inxUrl = buildInxUrl(inx);                 // http://10.30.20.210/...?Channelname=INX_...
+      const cheUrl = `http://${INX_MASTER_IP}/probe/core/mdiChannelDoc?Channelname=${encodeURIComponent(che)}&?&detached=1`; // NOTE: uses INX IP
 
       // INX card
       const cardInx = document.createElement('div'); cardInx.className = 'iframe-card';
@@ -372,7 +376,7 @@
       }
       leftContent.appendChild(cardInx);
 
-      // CHE card
+      // CHE card (served from INX IP)
       const cardChe = document.createElement('div'); cardChe.className = 'iframe-card';
       const titleChe = document.createElement('div'); titleChe.className = 'iframe-title'; titleChe.textContent = che;
       cardChe.appendChild(titleChe);
@@ -385,14 +389,19 @@
       leftContent.appendChild(cardChe);
     }
 
+    // REPLACE the existing renderRightForSelection(...) function with this:
     function renderRightForSelection(selected) {
       clearContainer(rightContent);
       if (!selected) return;
-      // produce both variants
-      const { inx, che } = produceBothVariants(selected);
-      const inxUrl = buildInxUrl(inx);
-      const cheUrl = buildCheUrl(che);
 
+      // produce both variants (INX_..., CHE_...)
+      const { inx, che } = produceBothVariants(selected);
+
+      // BOTH frames on the RIGHT must use the CHE master IP
+      const inxUrl = `http://${CHE_MASTER_IP}/probe/core/mdiChannelDoc?Channelname=${encodeURIComponent(inx)}&?&detached=1`; // NOTE: uses CHE IP
+      const cheUrl = buildCheUrl(che); // http://10.32.20.210/...?Channelname=CHE_...
+
+      // INX card (served from CHE IP)
       const cardInx = document.createElement('div'); cardInx.className = 'iframe-card';
       const titleInx = document.createElement('div'); titleInx.className = 'iframe-title'; titleInx.textContent = inx;
       cardInx.appendChild(titleInx);
@@ -401,6 +410,7 @@
       if (showUrls) { const u = document.createElement('div'); u.className = 'url-line'; u.textContent = inxUrl; cardInx.appendChild(u); }
       rightContent.appendChild(cardInx);
 
+      // CHE card (served from CHE IP)
       const cardChe = document.createElement('div'); cardChe.className = 'iframe-card';
       const titleChe = document.createElement('div'); titleChe.className = 'iframe-title'; titleChe.textContent = che;
       cardChe.appendChild(titleChe);
